@@ -1,0 +1,8 @@
+name = "TensorQuasicrystals"
+uuid = "01e99472-d4fc-4460-a07b-5b57900e482f"
+version = "0.1.0"
+
+
+[deps]
+ITensorMPS = "0d1a4710-d33b-49a5-8f18-73bdf49b47e2"
+ITensors = "9136182c-28ba-11e9-034c-db9fb085ebd5"
