@@ -1,3 +1,24 @@
+#This file contains common methods that are used in files Fibonacci.jl, Tribonacci.jl and silver-mean.jl.
+
+# Local operators used in Fibonacci.jl and Tribonacci.jl
+ITensors.op(::OpName"P1",::SiteType"Qubit") =
+[0 0
+0 1]
+
+ITensors.op(::OpName"sigma_plus",::SiteType"Qubit") =
+ [0 1
+  0 0]
+
+ITensors.op(::OpName"sigma_minus",::SiteType"Qubit") =
+ [0 0
+  1 0]
+
+#Projection matrix: P0|up> = |up>, P0|down> = 0
+ITensors.op(::OpName"P0",::SiteType"Qubit") =
+ [1 0
+  0 0]
+
+# Promotes an input MPS to a diagonal MPO
 function mps_to_diagonal_mpo(mps,sites)
     N = length(mps) 
     mpo_tensors = Vector{ITensor}(undef, N)
@@ -19,6 +40,7 @@ function mps_to_diagonal_mpo(mps,sites)
     return MPO(mpo_tensors)
 end
 
+# Constructs an MPS where every element is equal to const_term.
 function constant_MPS(L, const_term, sites)
     c_mps = MPS(sites)
 
@@ -33,20 +55,3 @@ function constant_MPS(L, const_term, sites)
 
     return c_mps
 end
-
-ITensors.op(::OpName"P1",::SiteType"Qubit") =
-[0 0
-0 1]
-
-ITensors.op(::OpName"sigma_plus",::SiteType"Qubit") =
- [0 1
-  0 0]
-
-ITensors.op(::OpName"sigma_minus",::SiteType"Qubit") =
- [0 0
-  1 0]
-
-#Projection matrix: P0|up> = |up>, P0|down> = 0
-ITensors.op(::OpName"P0",::SiteType"Qubit") =
- [1 0
-  0 0]
