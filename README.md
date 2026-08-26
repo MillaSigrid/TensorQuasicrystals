@@ -4,6 +4,8 @@ Methods for representing quasicrystals as tensor networks
 
 ## Repository structure
 
+### `TensorQuasicrystals.jl/src/Hamiltonians`
+
 ## Dependencies
 
 The code is written in Julia and depends on the following packages:
