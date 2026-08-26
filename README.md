@@ -4,7 +4,15 @@ Methods for representing quasicrystals as tensor networks
 
 ## Repository structure
 
-### `TensorQuasicrystals.jl/src/Hamiltonians`
+### `TensorQuasicrystals.jl/src`
+
+**`Hamiltonians`**  
+* tools for constructing Fibonacci, Tribonacci and silver-mean tight-binding Hamiltonians as Matrix Product Operators
+
+**`KPM.jl`**  
+* Kernel polyonomial method 
+
+### `TensorQuasicrystals.jl/examples`
 
 ## Dependencies
 
