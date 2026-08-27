@@ -1,3 +1,4 @@
+# This file implements tensorized KPM for Fibonacci, silver-mean and Tribonacci Hamiltonians.
 
 # Computes Fibonacci trace.
 function trace_fib(mpo::MPO, sites)
