@@ -17,7 +17,7 @@
 
 
 # Constructs an MPS representation of the Tribonacci word. Returns the MPS and the sites.
-function tribonacci_MPS(L, A, B, C)
+function tribonacci_MPS(L::Int, A::Int, B::Int, C::Int)
     sites =  siteinds("Qubit",L,conserve_qns=false);
     psi = MPS(sites)
     links = [Index(3, "Link,l=$i") for i in 1:L-1]
@@ -56,7 +56,7 @@ function tribonacci_MPS(L, A, B, C)
 end
 
 # Encodes the hopping-dependent part of the MPO Hamiltonian. Returns TK+(KT)^*, where T is the input MPO and K is a shift tensor.
-function kinetic_trib(mpo, L, sites) 
+function kinetic_trib(mpo::MPO, L::Int, sites) 
     
     k1 = OpSum()
     k2 = OpSum()
@@ -148,7 +148,7 @@ function kinetic_trib(mpo, L, sites)
 end
 
 # Constructs a diagonal Tribonacci Hamiltonian. The hopping amplitues are assumed to be equal to a constant, given by the optional argument const_term.
-function tribonacci_diag_Hamiltonian(L, A, B, C; const_term = 0)
+function tribonacci_diag_Hamiltonian(L::Int, A::Int, B::Int, C::Int; const_term = 0)
     psi, sites = tribonacci_MPS(L, A, B, C)
     H = mps_to_diagonal_mpo(psi, sites)
 
@@ -162,7 +162,7 @@ function tribonacci_diag_Hamiltonian(L, A, B, C; const_term = 0)
 end
 
 # Constructs a diagonal Fibonacci Hamiltonian. The hopping amplitues are assumed to be equal to a constant, given by the optional argument const_term.
-function tribonacci_off_diag_Hamiltonian(L, A, B, C; const_term = 0)
+function tribonacci_off_diag_Hamiltonian(L::Int, A::Int, B::Int, C::Int; const_term = 0)
     psi, sites = tribonacci_MPS(L, A, B, C)
     hop = mps_to_diagonal_mpo(psi, sites)
     H = kinetic_trib(hop, L, sites)
@@ -176,13 +176,52 @@ function tribonacci_off_diag_Hamiltonian(L, A, B, C; const_term = 0)
     return H, sites
 end
 
+# Projector MPO that sets the elements corresponding to invalid Tribonacci strings to zero.
+function tribonacci_projection_MPO(L::Int, sites)
+    proj_MPS = MPS(sites)
+    links = [Index(3, "Link,l=$i") for i in 1:L-1]
+
+    for k in 1:L
+        if k == 1
+            T = ITensor(sites[k], links[k])
+            # sigma = 0: 
+            T[sites[k]=>1, links[k]=>1] = 1.0
+            # sigma = 1: 
+            T[sites[k]=>2, links[k]=>2] = 1.0
+            proj_MPS[k] = T
+        elseif k < L
+            T = ITensor(links[k-1], sites[k], links[k])      
+            # sigma = 0:
+            T[links[k-1]=>1, sites[k]=>1, links[k]=>1] = 1.0
+            T[links[k-1]=>2, sites[k]=>1, links[k]=>1] = 1.0
+            T[links[k-1]=>3, sites[k]=>1, links[k]=>1] = 1.0      
+            # sigma = 1:
+            T[links[k-1]=>1, sites[k]=>2, links[k]=>2] = 1.0
+            T[links[k-1]=>2, sites[k]=>2, links[k]=>3] = 1.0   
+            proj_MPS[k] = T
+        else
+            T = ITensor(links[k-1], sites[k])
+            # sigma = 0:
+            T[links[k-1]=>1, sites[k]=>1] = 1.0
+            T[links[k-1]=>2, sites[k]=>1] = 1.0
+            T[links[k-1]=>3, sites[k]=>1] = 1.0
+            # sigma = 1:
+            T[links[k-1]=>1, sites[k]=>2] = 1.0
+            T[links[k-1]=>2, sites[k]=>2] = 1.0
+            proj_MPS[k] = T
+        end
+    end
+
+    return mps_to_diagonal_mpo(proj_MPS, sites)
+end
+
 
 # Matrix representation methods
 ######################################################
 
 
 # Computes the nth Triboancci number, T_n.
-function trib_seq(N::Int64)
+function trib_seq(N::Int)
     T_minus_3 = 0
     T_minus_2 = 0
     T_minus_1 = 1
@@ -206,7 +245,7 @@ function trib_seq(N::Int64)
 end
 
 # Computes the Tribonacci representation of n.
-function zeck_t(n)
+function zeck_t(n::Int)
     n <= 0 && return 0
     fib = [4,2,1]; while fib[1] < n insert!(fib,1,sum(fib[1:3])) end
     dig = Int[]; for f in fib f <= n ? (push!(dig,1); n = n-f;) : push!(dig,0) end
@@ -232,7 +271,7 @@ function zeck_t_to_MPS(n::Integer, L::Integer, sites)
 end
 
 # Returns the matrix representation of a MPO Hamiltonian. Use only for small system sizes.
-function get_matrix_trib(mpo, L, sites)
+function get_matrix_trib(mpo::MPO, L::Int, sites)
     size = trib_seq(L+3)
     mat = zeros(size, size) #.+ 0im
  

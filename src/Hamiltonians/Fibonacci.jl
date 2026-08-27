@@ -17,7 +17,7 @@
 
 
 # Constructs an MPS representation of the Fibonacci word. Returns the MPS and the sites.
-function fibonacci_MPS(L, A, B)
+function fibonacci_MPS(L::Int, A::Int, B::Int)
     sites = siteinds("Qubit", L,conserve_qns=false)
     psi  =  MPS(sites)
     links = [Index(2, "Link,l=$i") for i in 1:L-1]
@@ -53,7 +53,7 @@ function fibonacci_MPS(L, A, B)
 end
 
 # Encodes the hopping-dependent part of the MPO Hamiltonian. Returns TK+(KT)^*, where T is the input MPO and K is a shift tensor.
-function kinetic_fib(mpo, L, sites; boundary=:OBC) 
+function kinetic_fib(mpo::MPO, L::Int, sites; boundary=:OBC) 
 
     if boundary != :OBC && boundary != :PBC
         error("boundary must be :OBC or :PBC")
@@ -158,7 +158,7 @@ end
 
 # Constructs a diagonal Fibonacci Hamiltonian. Supports open (:OBC) and periodic (:PBC) boundary conditions.
 # The hopping amplitues are assumed to be equal to a constant, given by the optional argument const_term.
-function fibonacci_diag_Hamiltonian(L, A, B; boundary=:OBC, const_term = 0)
+function fibonacci_diag_Hamiltonian(L::Int, A::Int, B::Int; boundary=:OBC, const_term = 0)
     psi, sites = fibonacci_MPS(L, A, B)
     H = mps_to_diagonal_mpo(psi, sites)
 
@@ -173,7 +173,7 @@ end
 
 # Constructs an off-diagonal Fibonacci Hamiltonian. Supports open (:OBC) and periodic (:PBC) boundary conditions.
 # The on-site potentials are assumed to be equal to a constant, given by the optional argument const_term.
-function fibonacci_off_diag_Hamiltonian(L, A, B; boundary=:OBC, const_term = 0)
+function fibonacci_off_diag_Hamiltonian(L::Int, A::Int, B::Int; boundary=:OBC, const_term = 0)
     psi, sites = fibonacci_MPS(L, A, B)
     hop = mps_to_diagonal_mpo(psi, sites)
     H = kinetic_fib(hop, L, sites; boundary=boundary)
@@ -185,6 +185,41 @@ function fibonacci_off_diag_Hamiltonian(L, A, B; boundary=:OBC, const_term = 0)
     end
 
     return H, sites
+end
+
+# Projector MPO that sets the elements corresponding to invalid Fibonacci strings to zero.
+function fibonacci_projection_MPO(L::Int, sites)
+    proj_MPS  =  MPS(sites)
+    links = [Index(2, "Link,l=$i") for i in 1:L-1]
+
+    for k in 1:L
+        if k == 1
+            T = ITensor(sites[k], links[k])
+            # sigma = 0: 
+            T[sites[k]=>1, links[k]=>1] = 1.0
+            # sigma = 1: 
+            T[sites[k]=>2, links[k]=>2] = 1.0
+            proj_MPS[k] = T
+        elseif k < L
+            T = ITensor(links[k-1], sites[k], links[k])
+            # sigma = 0:
+            T[links[k-1]=>1, sites[k]=>1, links[k]=>1] = 1.0
+            T[links[k-1]=>2, sites[k]=>1, links[k]=>1] = 1.0        
+            # sigma = 1:
+            T[links[k-1]=>1, sites[k]=>2, links[k]=>2] = 1.0 
+            proj_MPS[k] = T
+        else
+            T = ITensor(links[k-1], sites[k])
+            # sigma = 0 
+            T[links[k-1]=>1, sites[k]=>1] = 1.0
+            T[links[k-1]=>2, sites[k]=>1] = 1.0
+            # sigma = 1
+            T[links[k-1]=>1, sites[k]=>2] = 1.0
+            proj_MPS[k] = T
+        end
+    end
+    
+    return mps_to_diagonal_mpo(proj_MPS, sites)
 end
 
 
@@ -201,7 +236,7 @@ function fib_seq(n::Int)
 end
 
 # Computes the Fibonacci (Zeckendorf) representation of n.
-function zeck(n)
+function zeck(n::Int)
     n <= 0 && return 0
     fib = [2,1]; while fib[1] < n insert!(fib,1,sum(fib[1:2])) end
     dig = Int[]; for f in fib f <= n ? (push!(dig,1); n = n-f;) : push!(dig,0) end
@@ -227,7 +262,7 @@ function zeck_to_MPS(n::Int, L::Int, sites)
 end
 
 # Returns the matrix representation of a MPO Hamiltonian. Use only for small system sizes.
-function get_matrix_fib(mpo, L, sites)
+function get_matrix_fib(mpo::MPO, L::Int, sites)
     size = fib_seq(L+2)
     mat = zeros(size, size) #+0im
    

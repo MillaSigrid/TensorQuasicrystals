@@ -68,7 +68,7 @@ ITensors.op(::OpName"r02",::SiteType"Trit") =
 
 
 # Constructs an MPS representation of the silver-mean word. Returns the MPS and the sites.
-function sm_MPS(L, A, B)
+function sm_MPS(L::Int, A::Int, B::Int)
     sites =  siteinds("Trit", L)
     psi = MPS(sites)
     links = [Index(2, "Link,l=$i") for i in 1:L-1]
@@ -111,7 +111,7 @@ function sm_MPS(L, A, B)
 end
 
 # Encodes the hopping-dependent part of the MPO Hamiltonian. Returns TK+(KT)^*, where T is the input MPO and K is a shift tensor.
-function kinetic_sm(mpo, L, sites) 
+function kinetic_sm(mpo::MPO, L::Int, sites) 
     k1 = OpSum()
     k2 = OpSum()
 
@@ -169,8 +169,24 @@ function kinetic_sm(mpo, L, sites)
     return k_mpo
 end
 
+function constant_MPS_trit(L::Int, const_term::InterruptException, sites)
+    c_mps = MPS(sites)
+
+    for k in 1:L
+        T = ITensor(sites[k])
+
+        T[sites[k]=>1] = const_term^(1/L)
+        T[sites[k]=>2] = const_term^(1/L)
+        T[sites[k]=>3] = const_term^(1/L)
+
+        c_mps[k] = T
+    end
+
+    return c_mps
+end
+
 # Constructs a diagonal silver-mean Hamiltonian. The hopping amplitues are assumed to be equal to a constant, given by the optional argument const_term.
-function sm_diag_Hamiltonian(L, A, B; const_term = 0)
+function sm_diag_Hamiltonian(L::Int, A::Int, B::Int; const_term = 0)
     psi, sites = sm_MPS(L, A, B)
     H = mps_to_diagonal_mpo(psi, sites)
 
@@ -184,7 +200,7 @@ function sm_diag_Hamiltonian(L, A, B; const_term = 0)
 end
 
 # Constructs an off-diagonal Fibonacci Hamiltonian. The on-site potentials are assumed to be equal to a constant, given by the optional argument const_term.
-function sm_off_diag_Hamiltonian(L, A, B; const_term = 0)
+function sm_off_diag_Hamiltonian(L::Int, A::Int, B::Int; const_term = 0)
     psi, sites = sm_MPS(L, A, B)
     hop = mps_to_diagonal_mpo(psi, sites)
     H = kinetic_sm(hop, L, sites)
@@ -198,12 +214,55 @@ function sm_off_diag_Hamiltonian(L, A, B; const_term = 0)
     return H, sites
 end
 
+# Projector MPO that sets the elements corresponding to invalid silver-mean strings to zero.
+function sm_projection_MPO(L::Int, sites)
+    proj_MPS = MPS(sites)
+    links = [Index(2, "Link,l=$i") for i in 1:L-1]
+
+    for k in 1:L
+        if k == 1
+            T = ITensor(sites[k], links[k])
+            # sigma = 0: 
+            T[sites[k]=>1, links[k]=>1] = 1.0
+            # sigma = 1: 
+            T[sites[k]=>2, links[k]=>1] = 1.0
+            # sigma = 2:
+            T[sites[k]=>3, links[k]=>2] = 1.0
+            proj_MPS[k] = T
+        elseif k < L
+            T = ITensor(links[k-1], sites[k], links[k])       
+            # sigma = 0:
+            T[links[k-1]=>1, sites[k]=>1, links[k]=>1] = 1.0
+            T[links[k-1]=>2, sites[k]=>1, links[k]=>1] = 1.0        
+            # sigma = 1:
+            T[links[k-1]=>1, sites[k]=>2, links[k]=>1] = 1.0
+            # sigma = 2:
+            T[links[k-1]=>1, sites[k]=>3, links[k]=>2] = 1.0
+            proj_MPS[k] = T
+        else
+            T = ITensor(links[k-1], sites[k])
+            # sigma = 0:
+            T[links[k-1]=>1, sites[k]=>1] = 1.0
+            T[links[k-1]=>2, sites[k]=>1] = 1.0
+            # sigma = 1:
+            T[links[k-1]=>1, sites[k]=>2] = 1.0
+            T[links[k-1]=>2, sites[k]=>2] = 0
+            # sigma = 2:
+            T[links[k-1]=>1, sites[k]=>3] = 1.0
+            T[links[k-1]=>2, sites[k]=>3] = 0
+            proj_MPS[k] = T
+        end
+    end
+
+    return mps_to_diagonal_mpo(proj_MPS, sites)
+end
+
 
 # Matrix representation methods
 ######################################################
 
 # Computes the nth denominator of the continued-fraction convergents of the silver mean, q_n.
-function sm_seq(N::Int64)
+function sm_seq(N::Int)
 
     if N == 0 return 1 end
     if N == 1 return 3 end
@@ -222,7 +281,7 @@ function sm_seq(N::Int64)
 end
 
 # Computes the silver-mean representation of n.
-function ostrowski_sm(n)
+function ostrowski_sm(n::Int)
     n <= 0 && return 0
     qs = [3,1]; while qs[1] < n insert!(qs,1,2*qs[1]+qs[2]) end
     dig = Int[]; for f in qs d = div(n,f); push!(dig,d); n -= d*f end
@@ -230,7 +289,7 @@ function ostrowski_sm(n)
 end
 
 # Returns the silver-mean representation of n in a form [0, 1, ...], where L is the length of the vector. 
-function to_sm_vector(n, size)
+function to_sm_vector(n::Int, size::Int)
     # Convert the integer n to a ternary string (without leading zeros)
     sm_str = join(ostrowski_sm(n))
     
@@ -242,13 +301,13 @@ function to_sm_vector(n, size)
 end
 
 # Returns the MPS silver-mean representation of integer n.
-function sm_to_MPS(n, L, sites)
+function sm_to_MPS(n::Int, L::Int, sites)
     sm = to_sm_vector(n, L)
     return MPS([state(sites[j], sm[j] + 1) for j in eachindex(sm)])
 end
 
 # Returns the matrix representation of a silver-mean MPO Hamiltonian. Use only for small system sizes.
-function get_matrix_sm(mpo, L, sites)
+function get_matrix_sm(mpo::MPO, L::Int, sites)
     size = sm_seq(L)
     mat = zeros(size, size) #.+ 0im
  
