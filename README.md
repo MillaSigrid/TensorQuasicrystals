@@ -18,7 +18,7 @@ The repository includes:
 **`KPM.jl`**  
 * tools for computing the DOS using tensorized kernel polynomial method
 
-### `TensorQuasicrystals.jl/examples/DOS_example.jl`
+### `TensorQuasicrystals.jl/examples/DOS_example.ipynb`
 * an example of how to use the methods in this repository to compute the DOS
 
 ## Dependencies
