@@ -1,6 +1,6 @@
 # Quasicrystals-as-tensor-networks
 
-This repository contains methods for representing quasicrystals as tensor networks and accompanies the manuscript "TITLE" by Milla Kolehmainen, Jose L. Lado and Anouar Moustaj. 
+This repository contains methods for representing quasicrystals as tensor networks and accompanies the manuscript "One-dimensional quasicrystals with tensor-network finite-state automata" by Milla Kolehmainen, Jose L. Lado and Anouar Moustaj (https://arxiv.org/pdf/2609.06040). 
 
 The repository includes:
 * all construction methods for quasicrystal matrix product operator (MPO) Hamiltonians
